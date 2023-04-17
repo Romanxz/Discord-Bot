@@ -6,9 +6,8 @@ const dotenv = require("dotenv")
 dotenv.config();
 
 const PACKAGE_NAME = "@romanxz/discord-bot"
-const NEXT_PUBLIC_GQL_PATH = "3006-deepfoundation-dev-kdbih18knts.ws-eu94.gitpod.io/gql"
+const NEXT_PUBLIC_GQL_PATH = "3006-deepfoundation-dev-7yh6tx7bozu.ws-eu94.gitpod.io/gql"
 const TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwczovL2hhc3VyYS5pby9qd3QvY2xhaW1zIjp7IngtaGFzdXJhLWFsbG93ZWQtcm9sZXMiOlsiYWRtaW4iXSwieC1oYXN1cmEtZGVmYXVsdC1yb2xlIjoiYWRtaW4iLCJ4LWhhc3VyYS11c2VyLWlkIjoiMzc2In0sImlhdCI6MTY4MDk3NzQ0NH0.87w7nB1H3v35FDNjaMZJ_sc6uIiu564lrQ5oWJy2HD8"
-const PACKAGE_TYPES = ["DiscordBotToken", "Active"]
 
 const apolloClient = generateApolloClient({
   path: NEXT_PUBLIC_GQL_PATH || '', // <<= HERE PATH TO UPDATE
@@ -23,36 +22,41 @@ const deep = new DeepClient({ apolloClient });
 
 async function installPackage() {
 
-  const code = `async ({deep, require, data: {oldLink, newLink, triggeredByLinkId}}) => {
-    const loadBotToken = async () => {
-      const containTreeId = await deep.id('@deep-foundation/core', 'containTree');
-      const tokenTypeId = await deep.id('@romanxz/discord-bot', 'BotToken');
-      const { data: [{ value: { value: npmToken = undefined } = {} } = {}] = [] } = await deep.select({
-        up: {
-          tree_id: { _eq: containTreeId },
-          parent: { id: { _eq: triggeredByLinkId } },
-          link: { type_id: { _eq: tokenTypeId } }
-        }
-      });
-      return npmToken;
-    };
-    const Discord = require("discord.js");
-    const BOT_TOKEN = await loadBotToken();
+  const code = `async ({ deep, require, data: { newLink, triggeredByLinkId } }) => {
 
+    const Discord = require("discord.js");
+    const BOT_TOKEN = "MTA5NDAzOTQ1MDE5Mjk3MzkzNQ.GUuP8G.KHa6HD8DnlAeDgk_ueZyIOEeiCTKNFWUOKHLS8"
+  
     const client = new Discord.Client({
       intents: [Discord.GatewayIntentBits.Guilds, Discord.GatewayIntentBits.GuildMessages],
     });
-
-    const data = await deep.select({id:newLink.id}, {returning:"id message:from {value} to {id out {id to {id channel:value}}}"});
+    const conversationTypeId = await deep.id("@deep-foundation/chatgpt", "Conversation");
+  
+    const data = await deep.select({ id: newLink.id }, { returning: \`id
+      message: from {
+        value
+      }
+      to {
+        id
+        out(where:{to:{type_id:{_eq:\${conversationTypeId}}}}) {
+          id
+          to {
+            id
+            channel: value
+          }
+        }
+      }\` });
     const replyText = data.data[0].message.value.value
     const channelId = data.data[0].to.out[0].to.channel.value
-    
+  
     client.on('ready', async () => {
-    client.channels.fetch(channelId)
-  .then(async (channel) => {await channel.send(replyText);
-        await client.destroy();});
+      client.channels.fetch(channelId)
+        .then(async (channel) => {
+          await channel.send(replyText);
+          setTimeout(async () => await client.destroy(), 1000)
+        });
     });
-  client.login(BOT_TOKEN);
+    client.login(BOT_TOKEN);
   }`
 
   const code2 = `async ({ deep, require, data: { oldLink, newLink, triggeredByLinkId } }) => {
